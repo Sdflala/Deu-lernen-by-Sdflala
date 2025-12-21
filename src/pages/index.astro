@@ -1,23 +1,438 @@
 ---
 const pageTitle = "主页";
+const menuItems = [
+	{ path: "/", label: "首页" },
+	{ path: "/help", label: "帮助" },
+	{ path: "/about", label: "关于" },
+	{ path: "/blog", label: "博客" }
+	];
 ---
 
 <html lang="zh_cn">
 	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>主页</title>
+
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+
+			body {
+				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+				background: white;
+				color: #333;
+				transition: background 0.3s, color 0.3s;
+			}
+
+			/* 顶部导航栏 */
+			.topbar {
+				position: fixed;
+				top: 0;
+				left: 0;
+				right: 0;
+				height: 60px;
+				background: #17191e;
+				color: white;
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding: 0 1.5rem;
+				box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+				z-index: 900;
+				transition: transform 0.4s ease;
+			}
+
+			.topbar.hidden {
+				transform: translateY(-100%);
+			}
+
+			.topbar-left {
+				display: flex;
+				align-items: center;
+				gap: 1rem;
+			}
+
+			.menu-btn {
+				background: none;
+				border: none;
+				color: white;
+				font-size: 1.8rem;
+				cursor: pointer;
+				padding: 0.5rem;
+				line-height: 1;
+			}
+
+			.logo-text {
+				font-size: 1.2rem;
+				font-weight: 600;
+				color: white;
+			}
+
+			.topbar-center {
+				flex: 1;
+				max-width: 400px;
+				margin: 0 2rem;
+			}
+
+			.search-box {
+				width: 100%;
+				padding: 0.5rem 1rem;
+				background: #23262f;
+				border: 1px solid #3a3d46;
+				border-radius: 6px;
+				color: white;
+				font-size: 0.95rem;
+				transition: background 0.3s, border-color 0.3s;
+			}
+
+			.search-box::placeholder {
+				color: #9ca3af;
+			}
+
+			.topbar-right {
+				display: flex;
+				align-items: center;
+				gap: 1rem;
+			}
+
+			.topbar-right button {
+				background: none;
+				border: none;
+				color: white;
+				cursor: pointer;
+				padding: 0.5rem;
+				font-size: 0.9rem;
+				display: flex;
+				align-items: center;
+				gap: 0.3rem;
+				transition: color 0.2s;
+			}
+
+			.topbar-right button:hover {
+				color: #60a5fa;
+			}
+
+			.topbar-link {
+				background: none;
+				border: none;
+				color: #9ca3af;
+				cursor: pointer;
+				padding: 0.5rem 0.8rem;
+				font-size: 0.95rem;
+				text-decoration: none;
+				transition: color 0.2s;
+			}
+
+			.topbar-link:hover {
+				color: white;
+			}
+
+			/* 侧边栏 */
+			.sidebar {
+				position: fixed;
+				top: 0;
+				left: -200px;
+				width: 200px;
+				height: 100vh;
+				background: #2a2d35;
+				color: white;
+				padding: 2rem 0;
+				box-shadow: 2px 0 12px rgba(0,0,0,0.3);
+				transition: left 0.4s cubic-bezier(0.77, 0, 0.175, 1);
+				z-index: 1000;
+				overflow-y: auto;
+			}
+
+			.sidebar.active {
+				left: 0;
+			}
+
+			.sidebar-header {
+				padding: 0 1.5rem 1.5rem;
+				border-bottom: 1px solid #3a3d46;
+				margin-bottom: 1rem;
+			}
+
+			.sidebar-title {
+				font-size: 1.3rem;
+				font-weight: 600;
+			}
+
+			.sidebar ul {
+				list-style: none;
+				padding: 0;
+				margin: 0;
+			}
+
+			.sidebar li {
+				margin: 0;
+			}
+
+			.sidebar a {
+				display: block;
+				color: #d1d5db;
+				text-decoration: none;
+				padding: 0.8rem 1.5rem;
+				font-size: 1rem;
+				transition: background 0.2s, color 0.2s;
+			}
+
+			.sidebar a:hover {
+				background: #3a3d46;
+				color: white;
+			}
+
+			/* 遮罩层 */
+			.overlay {
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: rgba(0, 0, 0, 0.5);
+				opacity: 0;
+				pointer-events: none;
+				transition: opacity 0.4s ease;
+				z-index: 950;
+			}
+
+			.overlay.active {
+				opacity: 1;
+				pointer-events: auto;
+			}
+
+			/* 主内容区域 */
+			main {
+				margin-top: 80px;
+				padding: 2rem;
+				max-width: 1200px;
+				margin-left: auto;
+				margin-right: auto;
+				transition: background 0.3s;
+			}
+
+			h1 {
+				font-size: 2.5rem;
+				margin-bottom: 1rem;
+				color: #111;
+				transition: color 0.3s;
+			}
+
+			p {
+				font-size: 1.1rem;
+				line-height: 1.7;
+				color: #555;
+				transition: color 0.3s;
+			}
+
+			/* 深色模式样式 */
+
+			body.dark-mode {
+				background: #1a1d23;
+				color: #e5e7eb;
+			}
+
+			body.dark-mode main {
+				background: #1a1d23;
+			}
+
+			body.dark-mode main h1 {
+				color: #f9fafb;
+			}
+
+			body.dark-mode main p {
+				color: #d1d5db;
+			}
+
+			body.dark-mode .topbar {
+				background: #0d0f12;
+				border-bottom: 1px solid #2a2d35;
+			}
+
+			body.dark-mode .logo-text {
+				color: #f9fafb;
+			}
+
+			body.dark-mode .search-box {
+				background: #1a1d23;
+				border-color: #2a2d35;
+				color: #e5e7eb;
+			}
+
+			body.dark-mode .search-box::placeholder {
+				color: #6b7280;
+			}
+
+			body.dark-mode .topbar-right button {
+				color: #d1d5db;
+			}
+
+			body.dark-mode .topbar-right button:hover {
+				color: #f9fafb;
+			}
+
+			body.dark-mode .topbar-link {
+				color: #d1d5db;
+			}
+
+			body.dark-mode .topbar-link:hover {
+				color: #f9fafb;
+			}
+
+			body.dark-mode .menu-btn {
+				color: #f9fafb;
+			}
+
+			body.dark-mode .sidebar {
+				background: #0d0f12;
+				border-right: 1px solid #2a2d35;
+			}
+
+			body.dark-mode .sidebar-header {
+				border-bottom-color: #2a2d35;
+			}
+
+			body.dark-mode .sidebar-title {
+				color: #f9fafb;
+			}
+
+			body.dark-mode .sidebar a {
+				color: #d1d5db;
+			}
+
+			body.dark-mode .sidebar a:hover {
+				background: #1a1d23;
+				color: #f9fafb;
+			}
+
+			body.dark-mode .overlay {
+				background: rgba(0, 0, 0, 0.7);
+			}
+		</style>
 		<title>{pageTitle}</title>
 	</head>
 
 	<body>
-        <a href="/">首页</a>
-        <a href="/about/">关于</a>
-        <a href="/help/">帮助</a>
-        <a href="/blog/">文章</a>
+		<!-- 顶部导航栏 -->
+		<header id="topbar" class="topbar">
+			<div class="topbar-left">
+				<button class="menu-btn" id="menuBtn" aria-label="打开菜单">☰</button>
+				<span class="logo-text">主页</span>
+			</div>
+			
+			<div class="topbar-center">
+				<input type="search" class="search-box" placeholder="Search" />
+			</div>
 
-		<h1>欢迎来到Index界面，管理员！</h1>
-		<h2>这里是一切之开端，也是Initial commit的开端~</h2>
+			<div class="topbar-right">
+				<a href="https://github.com/Sdflala/Deu-lernen-by-Sdflala/" target="_blank" class="topbar-link">
+				GitHub
+				</a>
+				<button id="themeToggle">
+					<span id="themeIcon">🌙</span> <span id="themeText">Auto</span>
+				</button>
+			</div>
+		</header>
+
+			<!-- 侧边栏 -->
+		<nav id="sidebar" class="sidebar">
+			<div class="sidebar-header">
+				<div class="sidebar-title">导航菜单</div>
+			</div>
+			<ul>
+					{menuItems.map(({ path, label }) => (
+					<li><a href={path}>{label}</a></li>
+					))}
+			</ul>
+		</nav>
+
+			<!-- 遮罩层 -->
+		<div id="overlay" class="overlay"></div>
+
+			<!-- 主内容 -->
+		<main>
+			<h1>此乃群星交汇之地</h1>
+			<p>孩子们要学德语</p>
+			<p>常年学德语的人大都目光清澈,极度自信,且智商逐年升高,最后完全变成天才。学德语会重塑身体结构,创造各种医学奇迹。</p>
+			<p>人一旦开始学德语就说明这个人的智慧品行样貌通通都是上上等,这辈子肯定能光明正大的做成任何事。学习德语的人具有强烈的社会认同和社会责任感，德语对治安稳定起到推进作用，对正常人有延年益寿的效果</p>
+			</p>
+		</main>
+
+		<script is:inline>
+			document.addEventListener("DOMContentLoaded", () => {
+			// ===== 菜单切换功能 =====
+				const menuBtn = document.getElementById("menuBtn");
+				const sidebar = document.getElementById("sidebar");
+				const overlay = document.getElementById("overlay");
+				const topbar = document.getElementById("topbar");
+
+				function toggleMenu() {
+					if (sidebar && overlay && topbar) {
+						sidebar.classList.toggle("active");
+						overlay.classList.toggle("active");
+						topbar.classList.toggle("hidden");
+					}
+				}
+
+				menuBtn?.addEventListener("click", toggleMenu);
+				overlay?.addEventListener("click", toggleMenu);
+
+			// ===== 主题切换功能 =====
+				const themeToggle = document.getElementById("themeToggle");
+				const themeIcon = document.getElementById("themeIcon");
+				const themeText = document.getElementById("themeText");
+
+			// 确保元素存在
+				if (!themeToggle || !themeIcon || !themeText) return;
+
+			// 读取本地存储的主题设置（默认为 auto）
+				let currentTheme = localStorage.getItem("theme") || "auto";
+
+			// 应用主题的函数
+				function applyTheme(theme) {
+					if (theme === "dark") {
+						// 深色模式
+						document.body.classList.add("dark-mode");
+						themeIcon.textContent = "🌙";
+						themeText.textContent = "Dark";
+					} else if (theme === "light") {
+						// 浅色模式
+						document.body.classList.remove("dark-mode");
+						themeIcon.textContent = "☀️";
+						themeText.textContent = "Light";
+					} else {
+						// Auto 模式：根据系统偏好自动选择
+						const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+						if (prefersDark) {
+						document.body.classList.add("dark-mode");
+						} else {
+						document.body.classList.remove("dark-mode");
+						}
+						themeIcon.textContent = "🌙";
+						themeText.textContent = "Auto";
+					}
+				}
+
+			// 页面加载时应用保存的主题
+				applyTheme(currentTheme);
+
+			// 点击按钮切换主题（循环：Auto → Light → Dark → Auto）
+				themeToggle.addEventListener("click", () => {
+					if (currentTheme === "auto") {
+						currentTheme = "light";
+					} else if (currentTheme === "light") {
+						currentTheme = "dark";
+					} else {
+						currentTheme = "auto";
+					}
+					localStorage.setItem("theme", currentTheme);
+					applyTheme(currentTheme);
+				});
+			});
+		</script>
 	</body>
 </html>
